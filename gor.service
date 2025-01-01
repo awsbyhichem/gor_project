@@ -1,0 +1,16 @@
+[Unit]
+Description=GoReplay Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/gor \
+    --input-raw ${INPUT_RAW} \
+    --output-file ${OUTPUT_FILE}
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=/etc/gor.conf
+
+[Install]
+WantedBy=multi-user.target

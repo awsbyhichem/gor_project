@@ -1,0 +1,28 @@
+ sudo ./gor --input-raw :80 --output-file requests.log > /dev/null 2>&1 & 
+
+cd /usr/local/bin/
+
+wget https://github.com/buger/goreplay/releases/download/1.3.3/gor_1.3.3_x64.tar.gz
+
+tar -xvf gor_1.3.3_x64.tar.gz 
+
+
+chmod +x /usr/local/bin/gor
+
+
+echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
+
+
+source ~/.bashrc
+
+
+log: /var/log/gor
+
+logrotate file : /etc/logrotate.d/gor
+
+
+systemctl daemon-reload
+
+systemctl start gor.service 
+
+systemctl enable gor.service 
