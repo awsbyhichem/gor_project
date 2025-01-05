@@ -1,0 +1,197 @@
+ sudo ./gor --input-raw :80 --output-file requests.log > /dev/null 2>&1 & 
+
+####### Track response:
+
+gor --input-raw-track-response --input-raw :80 --output-file requests.log
+
+
+###### Track Real called IP:
+
+gor --input-raw-track-response --input-raw-realip-header "X-Real-IP" --input-raw :80 --output-file requests.log 
+
+
+###### Chunksize to rotate file:
+
+
+gor --input-raw-track-response --input-raw-realip-header "X-Real-IP" --input-raw :80 --output-file mpb_institu-requets-%Y-%m-%d.gz --output-file-size-limit 512m --output-file-queue-limit 0
+
+
+
+######## Dry-run
+
+gor --input-file-dry-run requests --output-http "127.0.0.1:80"
+
+
+
+
+
+
+
+
+
+Performance testing
+Currently, this functionality supported only by input-file and only when using percentage based limiter.
+Unlike default limiter for input-file instead of dropping requests it will slowdown or speedup request emitting. Note that limiter is applied to input:
+
+# Replay from file on 2x speed 
+gor --input-file "requests.gor|200%" --output-http "staging.com"
+Use --stats --output-http-stats to see latency stats.
+
+
+
+
+
+
+
+
+
+
+cd /usr/local/bin/
+
+wget https://github.com/buger/goreplay/releases/download/1.3.3/gor_1.3.3_x64.tar.gz
+
+tar -xvf gor_1.3.3_x64.tar.gz 
+
+
+chmod +x /usr/local/bin/gor
+
+
+echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
+
+
+source ~/.bashrc
+
+
+log: /var/log/gor
+
+logrotate file : /etc/logrotate.d/gor
+
+
+systemctl daemon-reload
+
+systemctl start gor.service 
+
+systemctl enable gor.service 
+
+
+
+
+
+
+
+
+
+
+
+
+Étape 1 : Créer un utilisateur pour GoReplay
+Créez un utilisateur dédié, gor-user, sans accès root direct.
+
+bash
+Copy code
+sudo useradd -r -s /bin/false gor-user
+-r : Crée un utilisateur système.
+-s /bin/false : Empêche l'utilisateur de se connecter.
+Étape 2 : Installer GoReplay
+Téléchargez et installez GoReplay si ce n'est pas déjà fait. Placez l'exécutable dans /usr/local/bin.
+
+bash
+Copy code
+sudo mv gor /usr/local/bin/
+sudo chmod +x /usr/local/bin/gor
+
+
+
+Étape 3 : Configurer les capacités réseau pour l'utilisateur non-root
+GoReplay nécessite des privilèges élevés pour capturer les paquets réseau sur certaines interfaces. Pour éviter de lui donner des droits root complets, utilisez setcap.
+
+bash
+Copy code
+sudo setcap 'CAP_NET_RAW+eip CAP_NET_ADMIN+eip' /usr/local/bin/gor
+
+
+Étape 5 : Configurer les permissions des fichiers nécessaires
+Assurez-vous que l'utilisateur gor-user a accès à toutes les ressources nécessaires (fichiers de configuration, journaux, etc.).
+
+bash
+Copy code
+sudo chown -R gor-user:gor-user /path/to/gor/config/
+sudo mkdir /var/log/gor
+sudo chown gor-user:gor-user /var/log/gor
+
+
+Étape 6 : Activer et démarrer le service
+Rechargez la configuration de systemd et activez le service.
+
+bash
+Copy code
+sudo systemctl daemon-reload
+sudo systemctl enable gor.service
+sudo systemctl start gor.service
+
+
+
+
+
+[Unit]
+Description=GoReplay Service
+After=network.target
+
+[Service]
+User=gor-user
+Group=gor-user
+ExecStart=/usr/local/bin/gor --input-raw :80 --output-http http://localhost:8080
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+###################"" Explication #####################
+
+AmbientCapabilities
+Ces capacités permettent de passer des permissions spécifiques à un processus qui est exécuté par un utilisateur non-root.
+Dans le fichier de service gor.service, nous avons ajouté :
+ini
+Copy code
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+Cela signifie que même si gor-user n'a pas de privilèges root, le processus lancé par systemd recevra les capacités spécifiées.
+CapabilityBoundingSet
+Cette directive limite les capacités accessibles par le processus. Même si le processus essaie d'acquérir des privilèges supplémentaires, il sera restreint à ceux spécifiés :
+ini
+Copy code
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+LimitNOFILE
+Permet à GoReplay d'ouvrir un grand nombre de fichiers ou sockets (par défaut limité à 1024 pour un utilisateur non-root). Cette configuration est nécessaire pour gérer de nombreuses connexions simultanées :
+ini
+Copy code
+LimitNOFILE=65536
+
+1. Capacités ajoutées
+Les permissions sont configurées via l'outil setcap et les directives AmbientCapabilities et CapabilityBoundingSet dans le fichier de service. Voici les deux capacités ajoutées :
+
+1.1 CAP_NET_RAW
+Description : Cette capacité permet à un processus de lire et écrire directement dans les sockets "raw", ce qui est nécessaire pour capturer les paquets réseau à un niveau bas (comme un outil de capture de trafic).
+
+Usage dans GoReplay :
+
+GoReplay utilise les sockets "raw" pour intercepter les paquets réseau sur une interface donnée.
+Sans cette permission, un utilisateur non-root ne peut pas accéder aux sockets "raw", ce qui rendrait impossible la capture de trafic.
+Sécurité : Cette permission est limitée à GoReplay pour éviter que d'autres processus ne l'utilisent à des fins malveillantes.
+
+1.2 CAP_NET_ADMIN
+Description : Cette capacité donne des privilèges avancés pour gérer les paramètres réseau, tels que :
+
+Activation de mode promiscuous sur une interface réseau.
+Configuration des interfaces réseau ou gestion des routes.
+Usage dans GoReplay :
+
+Lorsque GoReplay capture des paquets, il peut avoir besoin de mettre l'interface en mode promiscuous pour intercepter tout le trafic réseau, y compris celui qui n'est pas destiné directement à la machine.
+Ce mode est essentiel pour écouter et rediriger le trafic.
+Sécurité : Cette capacité est restreinte au processus GoReplay uniquement, minimisant le risque de compromission.
