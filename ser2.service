@@ -1,0 +1,18 @@
+[Unit]
+Description=GoReplay Service
+After=network.target
+
+[Service]
+User=gor
+Group=gor
+ExecStart=/bin/bash -c '/usr/local/bin/gor --input-raw-realip-header "X-Real-IP" --input-raw :80 --output-file "/var/log/gor/mpb_institu-requests-$(date +%%Y-%%m-%%d).log" --output-file-append --output-file-flush-interval 5s'
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target
