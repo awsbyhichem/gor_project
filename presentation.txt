@@ -1,0 +1,71 @@
+GoReplay est un outil de surveillance réseau, open-source et léger,conçu pour capturer un trafic réseau HTTP en temps réel et l'utiliser pour l'observation, 
+les tests de charge, la surveillance et l'analyse détaillée.
+
+
+1. Capture du trafic réseau
+Goreplay capture le trafic réseau via une interception directe via ports, là ou il agit comme un proxy léger, écoutant sur un port spécifique les requêtes 
+entrantes ou sortantes.
+
+
+GoReplay propose une approche unique pour le shadowing. Au lieu d'être un proxy, GoReplay écoute en arrière-plan le trafic sur une interfaces réseau le traffic 
+HTTP, des nos applications ce qui ne nécessite aucune modification de votre infrastructure de production, autre que l'exécution du service GoReplay sur la même 
+machine hébergeant l'application.
+
+
+GoReplay peut également être étendu avec des plugins, qui nous permettant permettront alors d’accéder et de adapter dynamiquement les données de requêtes (par 
+exemple des données d'authentification).
+
+
+Fonctionnalités:
+
+1- Capture de trafic en temps réel
+2- Rejeu de trafic
+3- Redirection multi-cible en temps réel
+
+
+Cas d'utilisation typiques :
+
+1- Tests de charge : En reproduisant un trafic similaire à celui de la production.
+2- Rejouer des erreurs observées en production dans un environnement isolé.
+3- Détection et résolution des bugs
+4- Analyses approfondies
+
+############################""""
+
+
+
+
+
+Avantages :
+
+Capture transparente sans impacter significativement les performances du serveur ou du réseau
+Un Outil open-source, léger et rapide.
+Fonctionne sans perturber la production.
+Gestion avancée des timings (réplique précisément les timings du traffic)
+Rejeu multi-cible en temps réel
+Filtrage et adaptation des requêtes
+
+
+Défis et limitations:
+
+Tokens et sessions invalides : Il peut être nécessaire de gérer dynamiquement les séquences d'authentification dans l’environnement cible.
+Un Replay fidèle avec cette adaptation dynamique
+Optimisation de stockage des fichiers logs générés par Goreplay
+
+
+Le fichier log de Goreplay est un outil puissant pour le débogage avancé, les tests en préproduction, et l’analyse approfondie 
+des échanges réseau. En revanche, le fichier access_log d’Apache est plus adapté pour le monitoring simple et les rapports sur les accès au serveur web. 
+Si votre objectif inclut des tests, des rejouements ou une capture détaillée, Goreplay est un choix nettement supérieur.
+
+
+Comparaison entre les logs de Goreplay et Apache (access_log)
+Critère	Fichier log Goreplay	Fichier access_log d'Apache
+Nature des données	Captures des requêtes HTTP/S brutes, avec leur contenu complet (headers, body, etc.).	Logs résumés des requêtes entrantes, souvent limitées aux métadonnées.
+Format	JSON, texte brut ou binaire (configurable). Contient des détails comme méthode, URL, headers, body, timing, etc.	Texte brut dans un format structuré, par défaut en Common Log Format ou Combined Log Format.
+Granularité	Très détaillée : inclut toutes les parties des requêtes et réponses si configuré.	Moins détaillée : enregistre des métadonnées comme l'IP, la méthode, l’URL, le statut HTTP, le User-Agent, etc.
+Type de trafic capturé	Trafic HTTP entrant et sortant (bidirectionnel).	Trafic HTTP entrant uniquement (côté serveur web).
+Personnalisation	Permet de filtrer et modifier les données capturées via des plugins ou options CLI.	Configuration limitée à des champs standard prédéfinis.
+Finalité	Conçu pour être utilisé dans des tests (rejeu de trafic, analyse en profondeur).	Conçu principalement pour le monitoring, le débogage et l’analyse d'accès.
+Facilité d'analyse	Nécessite des outils ou scripts pour analyser ou exploiter les données en profondeur.	Directement lisible par des outils comme grep, des visualiseurs de logs (ex. Kibana) ou des scripts shell simples.
+Capture de réponses	Peut capturer les réponses des serveurs (trafic sortant).	Ne capture pas les réponses, uniquement les requêtes reçues.
+
