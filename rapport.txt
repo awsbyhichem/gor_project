@@ -175,3 +175,14 @@ Vous pouvez vérifier l’état des volumes avec sudo lvdisplay et des montages 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
