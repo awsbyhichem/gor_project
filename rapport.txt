@@ -1,0 +1,120 @@
+## Rapport d'installation de GoReplay en tant que service Systemd
+
+### Contexte
+GoReplay est un outil puissant qui capture et reproduit le trafic HTTP, ce qui permet de diagnostiquer et de résoudre des problèmes en production en reproduisant les incidents dans un environnement contrôlé. Ce document détaille les étapes nécessaires pour installer et configurer GoReplay en tant que service systemd, tout en respectant les bonnes pratiques en matière de sécurité et de gestion des ressources.
+
+---
+
+### Prérequis
+- Un serveur RedHat Linux.
+- Les droits root ou un utilisateur ayant des privilèges sudo.
+- Volume Group (VG) existant nommé `appli-vg`.
+- Binaire de GoReplay préalablement téléchargé (éventuellement depuis https://github.com/buger/goreplay/releases).
+
+---
+
+### Étapes d'installation
+
+#### 1. Création d'un utilisateur spécifique
+Pour exécuter GoReplay en toute sécurité :
+```bash
+sudo useradd -r -m -s /bin/false gor
+```
+Cet utilisateur système (sans shell) sera utilisé exclusivement pour exécuter GoReplay.
+
+---
+
+#### 2. Création d'un volume logique (LVM)
+1. Créez un volume logique pour stocker les fichiers de log :
+   ```bash
+   sudo lvcreate -L 10G -n gor-logs appli-vg
+   ```
+2. Formatez le volume logique en ext4 :
+   ```bash
+   sudo mkfs.ext4 /dev/appli-vg/gor-logs
+   ```
+3. Montez le volume logique dans un répertoire approprié :
+   ```bash
+   sudo mkdir -p /var/log/goreplay
+   sudo mount /dev/appli-vg/gor-logs /var/log/goreplay
+   ```
+4. Configurez le montage automatique au démarrage :
+   Ajoutez la ligne suivante dans `/etc/fstab` :
+   ```
+   /dev/appli-vg/gor-logs /var/log/goreplay ext4 defaults 0 2
+   ```
+5. Changez les permissions pour permettre à l'utilisateur `gor` d'écrire dans le répertoire :
+   ```bash
+   sudo chown -R gor:gor /var/log/goreplay
+   ```
+
+---
+
+#### 3. Installation de GoReplay
+1. Placez le binaire de GoReplay dans `/usr/local/bin` :
+   ```bash
+   sudo mv goreplay /usr/local/bin/
+   sudo chmod +x /usr/local/bin/goreplay
+   ```
+2. Ajoutez les CAPABILITIES nécessaires pour éviter d’exécuter GoReplay en tant que root :
+   ```bash
+   sudo setcap cap_net_raw,cap_net_admin=eip /usr/local/bin/goreplay
+   ```
+
+---
+
+#### 4. Configuration du service Systemd
+1. Créez un fichier de service systemd pour GoReplay :
+   ```bash
+   sudo nano /etc/systemd/system/goreplay.service
+   ```
+2. Ajoutez le contenu suivant :
+   ```ini
+   [Unit]
+   Description=GoReplay Service
+   After=network.target
+
+   [Service]
+   User=gor
+   Group=gor
+   ExecStart=/usr/local/bin/goreplay \
+     --input-raw :80 \
+     --output-file "/var/log/goreplay/gor-%Y-%m-%d-%H.log" --output-file-append --output-file-size-limit 0
+   Restart=on-failure
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+3. Rechargez systemd et activez le service :
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable goreplay
+   sudo systemctl start goreplay
+   ```
+4. Vérifiez que le service fonctionne :
+   ```bash
+   sudo systemctl status goreplay
+   ```
+
+---
+
+#### 5. Rotation des logs
+1. Créez un script pour supprimer les logs plus anciens que 5 jours :
+   ```bash
+   sudo nano /usr/local/bin/rotate_gor_logs.sh
+   ```
+   Contenu du script :
+   ```bash
+   #!/bin/bash
+   find /var/log/goreplay -type f -name "*.log" -mtime +5 -exec rm -f {} \;
+   ```
+2. Rendez le script exécutable :
+   ```bash
+   sudo chmod +x /usr/local/bin/rotate_gor_logs.sh
+   ```
+3. Ajoutez une tâche cron pour exécuter ce script quotidiennement :
+   ```bash
+   echo "0 0 * * * /usr/local/bin/rotate_gor_logs.sh" | sudo tee -a /etc/crontab
+   ```
+
+---
