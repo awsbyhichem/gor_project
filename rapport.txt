@@ -175,6 +175,42 @@ Vous pouvez vérifier l’état des volumes avec sudo lvdisplay et des montages 
 
 
 
+ProtectSystem=full
+ProtectHome=yes
+NoNewPrivileges=yes
+
+
+
+
+
+Éditez le fichier Cron :
+
+bash
+Copier
+Modifier
+
+
+
+
+crontab -e
+Ajoutez cette ligne pour exécuter le nettoyage tous les jours à 00:30 :
+
+bash
+Copier
+Modifier
+
+
+30 0 * * * find /chemin/vers/le/dossier/des/logs/ -type f -name "nom-app-*.log" -mtime +5 -exec rm -f {} \;
+
+
+
+
+
+5. Rotation des logs
+
+Ajoutez une tâche cron pour supprimer les logs plus anciens que 5 jours :
+
+echo "0 0 * * * find /var/log/goreplay -type f -name \"*.log\" -mtime +5 -exec rm -f {} \\\"" | sudo tee -a /etc/crontab
 
 
 
