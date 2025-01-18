@@ -118,3 +118,60 @@ Cet utilisateur système (sans shell) sera utilisé exclusivement pour exécuter
    ```
 
 ---
+
+
+
+
+
+
+
+1. Créer un volume logique (lvol)
+bash
+Copier
+Modifier
+sudo lvcreate -L 5G -n lv_expllog_gor datavg
+2. Créer un système de fichiers (filesystem)
+bash
+Copier
+Modifier
+sudo mkfs.xfs /dev/datavg/lv_expllog_gor
+3. Monter le système de fichiers (mount)
+Créer le répertoire de montage si nécessaire :
+
+bash
+Copier
+Modifier
+sudo mkdir -p /expllog/gor
+Monter le système de fichiers :
+
+bash
+Copier
+Modifier
+sudo mount /dev/mapper/datavg-lv_expllog_gor /expllog/gor
+Pour rendre ce montage persistant après un redémarrage, ajouter l'entrée correspondante dans
+
+
+
+/etc/fstab :
+
+bash
+Copier
+Modifier
+echo '/dev/mapper/datavg-lv_expllog_gor /expllog/gor xfs defaults 0 0' | sudo tee -a /etc/fstab
+4. Modifier les permissions (file)
+bash
+Copier
+Modifier
+sudo chown gor:gor /expllog/gor
+sudo chmod 0755 /expllog/gor
+Résumé
+Ces commandes reproduisent le comportement exact des tâches Ansible.
+Assurez-vous que le groupe de volumes (datavg) existe avant d'exécuter la commande lvcreate.
+Vous pouvez vérifier l’état des volumes avec sudo lvdisplay et des montages avec df -h ou mount.
+
+
+
+
+
+
+
