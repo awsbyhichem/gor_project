@@ -1,0 +1,46 @@
+1. Introduction:
+
+Notre architecture actuelle se présente comme suit :
+
+- Application PHP Symfony déployée sur un serveur Red Hat Linux.
+- Chaîne de traitement : PHP-FPM → Apache HTTPd → Varnish Cache.
+
+Le besoin de haute disponibilité vous conduit à :
+
+- Ajouter un deuxième serveur ayant une architecture identique.
+- Utiliser un F5 LTM pour distribuer la charge avec une configuration de sticky sessions.
+- Les sessions dans un premier temps vont être stockées sur les serveurs.
+- Une architecture cible et idéale à mettre en place dans un deuxiéme temps pour remplacer le stockage des sessions en local par un stockage distribué via un cluster Redis afin de ne pas perdre les sessions en cas d’indisponibilité d’un serveur.
+
+
+
+2. Provisionnement d’un nouveau serveur:
+
+- Provisionnement d'un nouveau serveur qui porte les mêmes caractéristiques (Hardware/OS) de serveur existant.
+- Configuration du réseau,sécurité et supervision pour ce serveur.
+- Installation des middlewares et outils applicatifs.
+- Déploiement de l’application via CI/CD.
+
+
+
+3. Configuration du F5 LTM pour sticky sessions:
+
+- Configuration du pool et ajout de nouveau memebre (serveur).
+- Configuration de la persistance (sticky sessions) via la création d'un profil de persistance dans l’interface de gestion du F5.
+
+
+4. Architecture:
+
+
+
+5. Architecture Cible:
+
+5.1. Problématique des sessions locales:
+
+- Actuellement, les sessions PHP sont stockées localement sur chaque serveur.
+- Le problème de ce type d'architecture est qu'en cas de défaillance ou de basculement, les sessions existantes sur un serveur sont perdues, entraînant une déconnexion de l’utilisateur ou une perte de contexte.
+
+5.2. Architecture idéale:
+
+- La mise en place d'un cluster Redis pour assurer la haute disponibilité de cette brique.
+- La migration du stockage des sessions locales vers un cluster Redis, assurant la continuité de l’expérience utilisateur même en cas de défaillance d’un serveur.
