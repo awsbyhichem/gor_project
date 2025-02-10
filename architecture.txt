@@ -44,3 +44,45 @@ Le besoin de haute disponibilité vous conduit à :
 
 - La mise en place d'un cluster Redis pour assurer la haute disponibilité de cette brique.
 - La migration du stockage des sessions locales vers un cluster Redis, assurant la continuité de l’expérience utilisateur même en cas de défaillance d’un serveur.
+
+
+#########################################
+############## GoReplay #################
+#########################################
+
+
+Contexte d'installation de GoReplay:
+
+Pour garantir la sécurité et la stabilité de l’infrastructure, il est essentiel de :
+
+1. Exécuter Goreplay avec des privilèges limités:
+
+- Lancement du service avec privilèges minimaux.
+- Lancer Goreplay sous un utilisateur non privilégié pour limiter les risques en cas d’attaque ou d’exploitation.
+
+2. Isoler les logs sur un volume dédié afin d’éviter toute saturation du système de fichiers principal:
+
+- Création d'un volume logique didiéb à GoReplay.
+- Adapter (augmenter/diminuer) la taille selon le trafic en Production.
+
+3. Surveiller en continu l’état du service et l’espace de stockage dédié via Dynatrace:
+
+- Supervision du service Goreplay et du volume LVM.
+- Activer des alertes en cas d'indisponibilité de service Goreplay et dépacement de stockage dédié.
+
+4. Vérifier que l’outil reste léger même en cas de trafic intense grâce à des tests de performance.
+
+- réalisation d'un test de performance en simulant une charge de trafic représentative des pics en production en utilisant l'outil "Apache Bench ab".
+- Les résultats de test indique que la consommation d'un Thread de Goreplay ne dépasse pas .......Mo et ....% de CPU, d'ou une consommation totale approximatif ....
+
+"""images"""
+
+- Même en pic de charge, le service reste réactif et ne monopolise pas les ressources du serveur.
+
+
+5. Mettre en place une rotation des logs pour une gestion optimale de l’espace disque.
+
+
+- Pour éviter une accumulation excessive de logs et préserver l’espace disque, on va mettre en place une rotation des logs qui conserve uniquement les 5 derniers jours.
+
+
